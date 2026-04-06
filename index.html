@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance System</title>
+<style>
+body { font-family: sans-serif; background: #f4f4f9; padding: 20px; display: flex;
+
+justify-content: center; }
+.container { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px
+10px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+h2 { color: #333; text-align: center; }
+.date-display { text-align: center; color: #1a73e8; font-weight: bold; margin-bottom: 20px; }
+.inputs { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+#add-btn { padding: 10px; background: #1a73e8; color: white; border: none; border-radius:
+5px; cursor: pointer; }
+.student-row { display: flex; justify-content: space-between; align-items: center; padding:
+10px; border-bottom: 1px solid #eee; margin-top: 5px; border-radius: 5px; }
+.status-present { color: green; font-weight: bold; }
+.status-absent { color: red; font-weight: bold; }
+.btn-toggle { cursor: pointer; padding: 5px; font-size: 12px; }
+.btn-del { color: gray; border: none; background: none; cursor: pointer; font-size: 12px;
+margin-left: 10px; }
+</style>
+</head>
+<body>
+<div class="container">
+<h2>Attendance Tracker</h2>
+<div id="date" class="date-display"></div>
+<div class="inputs">
+<input type="text" id="roll" placeholder="Roll Number">
+<input type="text" id="name" placeholder="Student Name">
+<button id="add-btn" onclick="addStudent()">Add Student</button>
+</div>
+
+<div id="list"></div>
+</div>
+<script>
+const API = "http://100.31.149.143:3000/api/attendance";
+function showDate() {
+const d = new Date();
+document.getElementById('date').innerText = d.toDateString();
+}
+async function load() {
+const res = await fetch(API);
+const data = await res.json();
+const list = document.getElementById('list');
+list.innerHTML = data.map(s => `
+<div class="student-row" style="background: ${s.status === 'Present' ? '#eefdf0' :
+
+'#fdf2f2'}">
+<div>
+<strong>[${s.roll_no}]</strong> ${s.name}
+
+<span class="${s.status === 'Present' ? 'status-present' :
+
+'status-absent'}">(${s.status})</span>
+</div>
+<div>
+<button class="btn-toggle" onclick="toggle(${s.id}, '${s.status}')">Toggle</button>
+<button class="btn-del" onclick="del(${s.id})">Remove</button>
+</div>
+</div>
+`).join('');
+}
+async function addStudent() {
+const name = document.getElementById('name').value;
+const roll_no = document.getElementById('roll').value;
+if(!name || !roll_no) return alert("Fill all fields");
+await fetch(API, {
+method: 'POST',
+headers: {'Content-Type': 'application/json'},
+body: JSON.stringify({ name, roll_no })
+});
+document.getElementById('name').value = '';
+document.getElementById('roll').value = '';
+load();
+
+}
+async function toggle(id, current) {
+const next = current === 'Present' ? 'Absent' : 'Present';
+await fetch(API + "/" + id, {
+method: 'PUT',
+headers: {'Content-Type': 'application/json'},
+body: JSON.stringify({ status: next })
+});
+load();
+}
+async function del(id) {
+if(!confirm("Remove?")) return;
+await fetch(API + "/" + id, { method: 'DELETE' });
+load();
+}
+showDate();
+load();
+</script>
+</body>
+</html>
